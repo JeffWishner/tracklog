@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Track Logger">
+<title>Track Logger</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  /* Inter — display/UI font */
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400;
+    src: url('https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2') format('woff2');
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 600;
+    src: url('https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuGKYAZ9hiJ-Ek-_EeA.woff2') format('woff2');
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 700;
+    src: url('https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuFuYAZ9hiJ-Ek-_EeA.woff2') format('woff2');
+    font-display: swap;
+  }
+  /* Source Code Pro — monospace data font */
+  @font-face {
+    font-family: 'Source Code Pro';
+    font-style: normal;
+    font-weight: 400;
+    src: url('https://fonts.gstatic.com/s/sourcecodepro/v22/HI_diYsKILxRpg3hIP6sJ7fM7PqlPevWnsUnxlC9.woff2') format('woff2');
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Source Code Pro';
+    font-style: normal;
+    font-weight: 600;
+    src: url('https://fonts.gstatic.com/s/sourcecodepro/v22/HI_diYsKILxRpg3hIP6sJ7fM7PqlB-vWnsUnxlC9.woff2') format('woff2');
+    font-display: swap;
+  }
+</style>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #1a1a1a;
+    --border: #2a2a2a;
+    --accent: #e8c84a;
+    --accent2: #c8a820;
+    --red: #e84a4a;
+    --green: #4ae87a;
+    --blue: #4a9ee8;
+    --text: #f0f0f0;
+    --text-dim: #666;
+    --text-mid: #999;
+    --mono: 'Source Code Pro', monospace;
+    --display: 'Inter', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px 10px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .app-title {
+    font-family: var(--display);
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .session-name {
+    font-size: 13px;
+    color: var(--text-mid);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-bottom: 1px dashed var(--border);
+    padding-bottom: 1px;
+  }
+
+  .header-right {
+    text-align: right;
+  }
+
+  .point-count {
+    font-family: var(--display);
+    font-size: 42px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .point-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* STATUS BAR */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    flex-shrink: 0;
+  }
+  .status-dot.active { background: var(--green); animation: pulse 1.5s infinite; }
+  .status-dot.paused { background: var(--accent); }
+  .status-dot.stopped { background: var(--red); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .status-text {
+    font-size: 13px;
+    color: var(--text-mid);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    flex: 1;
+  }
+
+  .elapsed {
+    font-size: 16px;
+    color: var(--text);
+    letter-spacing: 2px;
+  }
+
+  .next-ping {
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  /* LIVE METRICS */
+  .metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    padding: 0;
+  }
+
+  .metric-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .metric-row:last-child { border-bottom: none; }
+
+  .metric-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    width: 80px;
+  }
+
+  .metric-val {
+    font-family: var(--display);
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1;
+    text-align: right;
+    flex: 1;
+  }
+
+  .metric-val.highlight { color: var(--accent); }
+  .metric-val.large { font-size: 42px; }
+
+  .metric-unit {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    width: 40px;
+    text-align: right;
+    align-self: flex-end;
+    padding-bottom: 4px;
+    margin-left: 8px;
+  }
+
+  /* POINT LIST */
+  .list-container {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0;
+  }
+
+  .list-header {
+    display: grid;
+    grid-template-columns: 36px 1fr 1fr 52px 52px 52px;
+    gap: 0;
+    padding: 6px 12px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .list-header span {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+
+  .point-row {
+    display: grid;
+    grid-template-columns: 36px 1fr 1fr 52px 52px 52px;
+    gap: 0;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    animation: slideIn 0.2s ease;
+  }
+
+  .point-row:nth-child(even) { background: rgba(255,255,255,0.015); }
+  .point-row.latest { border-left: 2px solid var(--accent); }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .point-row span {
+    font-size: 12px;
+    color: var(--text-mid);
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .point-row .idx { color: var(--text-dim); font-size: 11px; }
+  .point-row .coord { color: var(--text); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 60px 20px;
+    color: var(--text-dim);
+  }
+
+  .empty-icon {
+    font-size: 48px;
+    opacity: 0.3;
+  }
+
+  .empty-text {
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  /* CONTROLS */
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .btn {
+    background: var(--surface);
+    border: none;
+    color: var(--text-dim);
+    font-family: var(--display);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 18px 8px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    -webkit-user-select: none;
+  }
+
+  .btn-icon { font-size: 24px; line-height: 1; }
+  .btn-sub { font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; }
+
+  .btn:disabled { opacity: 0.25; }
+  .btn:not(:disabled):active { background: var(--surface2); }
+
+  .btn-start { color: var(--green); }
+  .btn-start:not(:disabled):active { background: rgba(74,232,122,0.1); }
+
+  .btn-pause { color: var(--accent); }
+  .btn-pause:not(:disabled):active { background: rgba(232,200,74,0.1); }
+
+  .btn-stop { color: var(--red); }
+  .btn-stop:not(:disabled):active { background: rgba(232,74,74,0.1); }
+
+  /* BOTTOM TOOLBAR */
+  .toolbar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .tool-btn {
+    background: var(--surface2);
+    border: none;
+    color: var(--text-mid);
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background 0.15s, color 0.15s;
+    -webkit-user-select: none;
+  }
+
+  .tool-btn:disabled { opacity: 0.25; }
+  .tool-btn:not(:disabled):active { background: var(--surface); color: var(--text); }
+  .tool-btn.danger:not(:disabled) { color: var(--red); }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    align-items: flex-end;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px 16px 0 0;
+    width: 100%;
+    padding: 24px 20px 40px;
+    transform: translateY(20px);
+    transition: transform 0.2s;
+  }
+
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-title {
+    font-family: var(--display);
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+
+  .modal input[type="text"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    outline: none;
+  }
+
+  .modal input:focus { border-color: var(--accent); }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .modal-btn {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 12px;
+    cursor: pointer;
+  }
+
+  .modal-btn.primary {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* SCREEN LOCK BANNER */
+  .lock-banner {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: rgba(232,200,74,0.08);
+    border-bottom: 1px solid rgba(232,200,74,0.25);
+    flex-shrink: 0;
+  }
+
+  .lock-banner.visible { display: flex; }
+
+  .lock-icon { font-size: 16px; flex-shrink: 0; }
+
+  .lock-text {
+    flex: 1;
+    font-size: 9px;
+    color: var(--accent);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    line-height: 1.4;
+  }
+
+  .lock-btn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 5px;
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 7px 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .lock-dismiss {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 2px;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 160px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--text-mid);
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 200;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="app-title">TRACKLOG</div>
+    <div class="session-name" id="sessionName" onclick="openNameModal()">TAP TO NAME SESSION</div>
+  </div>
+  <div class="header-right">
+    <div class="point-count" id="pointCount">0</div>
+    <div class="point-label">POINTS</div>
+  </div>
+</header>
+
+<div class="status-bar">
+  <div class="status-dot" id="statusDot"></div>
+  <div class="status-text" id="statusText">READY</div>
+  <div class="elapsed" id="elapsed">00:00:00</div>
+</div>
+
+<!-- Screen Lock Warning Banner -->
+<div class="lock-banner" id="lockBanner">
+  <div class="lock-icon">⚠</div>
+  <div class="lock-text">Screen auto-lock will pause GPS logging. Disable it before starting.</div>
+  <button class="lock-btn" onclick="openScreenLockSettings()">Open Settings</button>
+  <button class="lock-dismiss" onclick="dismissLockBanner()" title="Dismiss">×</button>
+</div>
+
+<div class="metrics">
+  <div class="metric-row">
+    <div class="metric-label">LAT</div>
+    <div class="metric-val highlight large" id="mLat">—</div>
+    <div class="metric-unit">°</div>
+  </div>
+  <div class="metric-row">
+    <div class="metric-label">LNG</div>
+    <div class="metric-val highlight large" id="mLng">—</div>
+    <div class="metric-unit">°</div>
+  </div>
+  <div class="metric-row">
+    <div class="metric-label">ALT</div>
+    <div class="metric-val" id="mAlt">—</div>
+    <div class="metric-unit">m</div>
+  </div>
+  <div class="metric-row">
+    <div class="metric-label">SPEED</div>
+    <div class="metric-val" id="mSpd">—</div>
+    <div class="metric-unit">km/h</div>
+  </div>
+</div>
+
+<div class="list-container" id="listContainer" style="display:none;">
+  <div class="list-header">
+    <span>#</span>
+    <span>LATITUDE</span>
+    <span>LONGITUDE</span>
+    <span>ALT</span>
+    <span>SPD</span>
+    <span>HDG</span>
+  </div>
+  <div class="empty-state" id="emptyState">
+    <div class="empty-icon">◎</div>
+    <div class="empty-text">Press start to begin<br>logging your track</div>
+  </div>
+  <div id="pointList"></div>
+</div>
+
+<div class="controls">
+  <button class="btn btn-start" id="btnStart" onclick="startTracking()">
+    <div class="btn-icon">▶</div>
+    <div>START</div>
+    <div class="btn-sub">5s interval</div>
+  </button>
+  <button class="btn btn-pause" id="btnPause" onclick="pauseTracking()" disabled>
+    <div class="btn-icon">⏸</div>
+    <div>PAUSE</div>
+    <div class="btn-sub">resume later</div>
+  </button>
+  <button class="btn btn-stop" id="btnStop" onclick="stopTracking()" disabled>
+    <div class="btn-icon">■</div>
+    <div>STOP</div>
+    <div class="btn-sub">end session</div>
+  </button>
+</div>
+
+<div class="toolbar">
+  <button class="tool-btn" id="btnExport" onclick="exportCSV()" disabled>
+    ↑ EXPORT CSV
+  </button>
+  <button class="tool-btn danger" id="btnClear" onclick="clearData()">
+    ✕ CLEAR ALL
+  </button>
+</div>
+
+<!-- Session Name Modal -->
+<div class="modal-overlay" id="nameModal">
+  <div class="modal">
+    <div class="modal-title">SESSION NAME</div>
+    <input type="text" id="nameInput" placeholder="e.g. Douro Tour 2026 – Day 1" maxlength="60">
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="closeNameModal()">Cancel</button>
+      <button class="modal-btn primary" onclick="saveSessionName()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Screen Lock Instruction Modal -->
+<div class="modal-overlay" id="lockModal">
+  <div class="modal">
+    <div class="modal-title">DISABLE AUTO-LOCK</div>
+    <div style="font-size:13px; color:var(--text-mid); line-height:1.8; margin-bottom:20px;">
+      On your iPhone, go to:<br><br>
+      <span style="color:var(--accent);">⚙ Settings</span><br>
+      → <span style="color:var(--text);">Display &amp; Brightness</span><br>
+      → <span style="color:var(--text);">Auto-Lock</span><br>
+      → <span style="color:var(--accent); font-weight:600;">Never</span><br><br>
+      <span style="color:var(--text-dim); font-size:11px;">Remember to re-enable Auto-Lock after your session to preserve battery.</span>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn primary" onclick="closeLockModal()">Got It</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── STATE ──────────────────────────────────────────────────────────
+  let state = 'idle'; // idle | running | paused | stopped
+  let points = [];
+  let intervalId = null;
+  let elapsedId = null;
+  let countdownId = null;
+  let sessionName = 'UNTITLED SESSION';
+  let startTime = null;
+  let pausedTime = 0;
+  let pauseStart = null;
+  let nextPingIn = 5;
+  const INTERVAL_MS = 5000;
+
+  // ── INIT ───────────────────────────────────────────────────────────
+  window.addEventListener('load', () => {
+    loadFromStorage();
+    renderAll();
+  });
+
+  function loadFromStorage() {
+    try {
+      const saved = localStorage.getItem('tracklog_data');
+      if (saved) {
+        const d = JSON.parse(saved);
+        points = d.points || [];
+        sessionName = d.sessionName || 'UNTITLED SESSION';
+        document.getElementById('sessionName').textContent = sessionName;
+      }
+    } catch(e) {}
+  }
+
+  function saveToStorage() {
+    try {
+      localStorage.setItem('tracklog_data', JSON.stringify({ points, sessionName }));
+    } catch(e) {}
+  }
+
+  // ── TRACKING ───────────────────────────────────────────────────────
+  function startTracking() {
+    if (!navigator.geolocation) {
+      showToast('Geolocation not available on this device');
+      return;
+    }
+
+    if (state === 'idle' || state === 'stopped') {
+      if (state === 'stopped') points = [];
+      startTime = Date.now();
+      pausedTime = 0;
+      if (state === 'idle') showLockBanner();
+    } else if (state === 'paused') {
+      pausedTime += Date.now() - pauseStart;
+    }
+
+    state = 'running';
+    updateUI();
+    capturePoint(); // immediate first capture
+    intervalId = setInterval(capturePoint, INTERVAL_MS);
+    elapsedId = setInterval(updateElapsed, 1000);
+    startCountdown();
+  }
+
+  function pauseTracking() {
+    if (state !== 'running') return;
+    state = 'paused';
+    pauseStart = Date.now();
+    clearInterval(intervalId);
+    clearInterval(countdownId);
+    updateUI();
+  }
+
+  function stopTracking() {
+    if (state === 'idle') return;
+    state = 'stopped';
+    clearInterval(intervalId);
+    clearInterval(elapsedId);
+    clearInterval(countdownId);
+    saveToStorage();
+    updateUI();
+    showToast(`SESSION SAVED — ${points.length} POINTS`);
+  }
+
+  function capturePoint() {
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const { latitude, longitude, altitude, speed, heading, accuracy } = pos.coords;
+        const pt = {
+          idx: points.length + 1,
+          time: new Date().toISOString(),
+          lat: latitude,
+          lng: longitude,
+          alt: altitude !== null ? Math.round(altitude) : null,
+          spd: speed !== null ? Math.round(speed * 3.6) : null, // m/s → km/h
+          hdg: heading !== null ? Math.round(heading) : null,
+          acc: accuracy !== null ? Math.round(accuracy) : null,
+        };
+        points.unshift(pt); // newest first
+        nextPingIn = 5;
+        updateMetrics(pt);
+        renderPointList();
+        document.getElementById('pointCount').textContent = points.length;
+        document.getElementById('emptyState').style.display = 'none';
+        saveToStorage();
+      },
+      err => {
+        showToast('GPS ERROR: ' + err.message);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }
+
+  function startCountdown() {
+    nextPingIn = 5;
+    countdownId = setInterval(() => {
+      nextPingIn = Math.max(0, nextPingIn - 1);
+    }, 1000);
+  }
+
+  // ── UI ─────────────────────────────────────────────────────────────
+  function updateUI() {
+    const dot = document.getElementById('statusDot');
+    const txt = document.getElementById('statusText');
+    dot.className = 'status-dot';
+
+    if (state === 'running') {
+      dot.classList.add('active');
+      txt.textContent = 'LOGGING — NEXT POINT IN ' + nextPingIn + 'S';
+      setInterval(() => {
+        if (state === 'running') txt.textContent = 'LOGGING — NEXT POINT IN ' + nextPingIn + 'S';
+      }, 1000);
+    } else if (state === 'paused') {
+      dot.classList.add('paused');
+      txt.textContent = 'PAUSED';
+    } else if (state === 'stopped') {
+      dot.classList.add('stopped');
+      txt.textContent = 'SESSION COMPLETE';
+    } else {
+      txt.textContent = 'READY';
+    }
+
+    document.getElementById('btnStart').disabled = (state === 'running');
+    document.getElementById('btnPause').disabled = (state !== 'running');
+    document.getElementById('btnStop').disabled = (state === 'idle' || state === 'stopped');
+    document.getElementById('btnExport').disabled = points.length === 0;
+
+    document.getElementById('btnStart').querySelector('div').textContent =
+      (state === 'paused') ? 'RESUME' : 'START';
+  }
+
+  function updateMetrics(pt) {
+    document.getElementById('mLat').textContent = pt.lat.toFixed(5);
+    document.getElementById('mLng').textContent = pt.lng.toFixed(5);
+    document.getElementById('mAlt').textContent = pt.alt !== null ? pt.alt : '—';
+    document.getElementById('mSpd').textContent = pt.spd !== null ? pt.spd : '—';
+  }
+
+  function updateElapsed() {
+    if (!startTime) return;
+    let ms = Date.now() - startTime - pausedTime;
+    if (state === 'paused') ms = pauseStart - startTime - pausedTime;
+    const s = Math.floor(ms / 1000) % 60;
+    const m = Math.floor(ms / 60000) % 60;
+    const h = Math.floor(ms / 3600000);
+    document.getElementById('elapsed').textContent =
+      [h, m, s].map(n => String(n).padStart(2, '0')).join(':');
+  }
+
+  function renderAll() {
+    document.getElementById('sessionName').textContent = sessionName;
+    document.getElementById('pointCount').textContent = points.length;
+    if (points.length > 0) {
+      document.getElementById('emptyState').style.display = 'none';
+      renderPointList();
+      updateMetrics(points[0]);
+    }
+    document.getElementById('btnExport').disabled = points.length === 0;
+  }
+
+  function renderPointList() {
+    const list = document.getElementById('pointList');
+    list.innerHTML = points.map((pt, i) => `
+      <div class="point-row ${i === 0 ? 'latest' : ''}">
+        <span class="idx">${pt.idx}</span>
+        <span class="coord">${pt.lat.toFixed(6)}</span>
+        <span class="coord">${pt.lng.toFixed(6)}</span>
+        <span>${pt.alt !== null ? pt.alt + 'm' : '—'}</span>
+        <span>${pt.spd !== null ? pt.spd : '—'}</span>
+        <span>${pt.hdg !== null ? pt.hdg + '°' : '—'}</span>
+      </div>
+    `).join('');
+  }
+
+  // ── EXPORT ─────────────────────────────────────────────────────────
+  function exportCSV() {
+    if (points.length === 0) return;
+    const headers = ['Point','Timestamp','Latitude','Longitude','Altitude_m','Speed_kmh','Heading_deg','Accuracy_m'];
+    const rows = [...points].reverse().map(pt => [
+      pt.idx,
+      pt.time,
+      pt.lat,
+      pt.lng,
+      pt.alt ?? '',
+      pt.spd ?? '',
+      pt.hdg ?? '',
+      pt.acc ?? ''
+    ].join(','));
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeName = sessionName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    a.href = url;
+    a.download = `tracklog_${safeName}_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`EXPORTED ${points.length} POINTS`);
+  }
+
+  // ── SESSION NAME ───────────────────────────────────────────────────
+  function openNameModal() {
+    document.getElementById('nameInput').value = sessionName === 'UNTITLED SESSION' ? '' : sessionName;
+    document.getElementById('nameModal').classList.add('open');
+    setTimeout(() => document.getElementById('nameInput').focus(), 300);
+  }
+
+  function closeNameModal() {
+    document.getElementById('nameModal').classList.remove('open');
+  }
+
+  function saveSessionName() {
+    const val = document.getElementById('nameInput').value.trim();
+    if (val) {
+      sessionName = val.toUpperCase();
+      document.getElementById('sessionName').textContent = sessionName;
+      saveToStorage();
+    }
+    closeNameModal();
+  }
+
+  document.getElementById('nameModal').addEventListener('click', function(e) {
+    if (e.target === this) closeNameModal();
+  });
+
+  document.getElementById('nameInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') saveSessionName();
+  });
+
+  // ── CLEAR ──────────────────────────────────────────────────────────
+  function clearData() {
+    if (state === 'running') { showToast('STOP SESSION BEFORE CLEARING'); return; }
+    if (points.length === 0) { showToast('NOTHING TO CLEAR'); return; }
+    if (!confirm(`Clear all ${points.length} points? This cannot be undone.`)) return;
+    points = [];
+    state = 'idle';
+    startTime = null;
+    pausedTime = 0;
+    clearInterval(intervalId);
+    clearInterval(elapsedId);
+    clearInterval(countdownId);
+    document.getElementById('pointList').innerHTML = '';
+    document.getElementById('emptyState').style.display = '';
+    document.getElementById('pointCount').textContent = '0';
+    document.getElementById('elapsed').textContent = '00:00:00';
+    document.getElementById('mLat').textContent = '—';
+    document.getElementById('mLng').textContent = '—';
+    document.getElementById('mAlt').textContent = '—';
+    document.getElementById('mSpd').textContent = '—';
+    saveToStorage();
+    updateUI();
+    showToast('CLEARED');
+  }
+
+  // ── TOAST ──────────────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // ── SCREEN LOCK BANNER ─────────────────────────────────────────────
+  function showLockBanner() {
+    const dismissed = sessionStorage.getItem('lockBannerDismissed');
+    if (!dismissed) {
+      document.getElementById('lockBanner').classList.add('visible');
+    }
+  }
+
+  function dismissLockBanner() {
+    document.getElementById('lockBanner').classList.remove('visible');
+    sessionStorage.setItem('lockBannerDismissed', '1');
+  }
+
+  function openScreenLockSettings() {
+    document.getElementById('lockModal').classList.add('open');
+  }
+
+  function closeLockModal() {
+    document.getElementById('lockModal').classList.remove('open');
+    dismissLockBanner();
+  }
+
+  document.getElementById('lockModal').addEventListener('click', function(e) {
+    if (e.target === this) closeLockModal();
+  });
+
+  // ── SERVICE WORKER REGISTRATION ────────────────────────────────────
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js')
+        .catch(err => console.log('SW registration failed:', err));
+    });
+  }
+
+  // ── STATUS TEXT UPDATE LOOP ────────────────────────────────────────
+  setInterval(() => {
+    if (state === 'running') {
+      document.getElementById('statusText').textContent = 'LOGGING — NEXT POINT IN ' + nextPingIn + 'S';
+    }
+  }, 500);
+</script>
+</body>
+</html>
