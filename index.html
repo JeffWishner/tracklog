@@ -675,7 +675,31 @@
   window.addEventListener('load', () => {
     loadFromStorage();
     renderAll();
+    requestLocationPermission();
   });
+
+  function requestLocationPermission() {
+    if (!navigator.geolocation) return;
+    // Request location immediately on load so iOS shows the permission prompt
+    // and registers this web app in Location Services
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        // Permission granted — update metrics with initial reading
+        const { latitude, longitude, altitude, speed } = pos.coords;
+        document.getElementById('mLat').textContent = latitude.toFixed(6);
+        document.getElementById('mLng').textContent = longitude.toFixed(6);
+        document.getElementById('mAlt').textContent = altitude !== null ? Math.round(altitude) : '—';
+        document.getElementById('mSpd').textContent = speed !== null ? Math.round(speed * 3.6) : '—';
+      },
+      err => {
+        // Permission denied or error — show clear message
+        document.getElementById('statusText').textContent = 'LOCATION PERMISSION REQUIRED';
+        const dot = document.getElementById('statusDot');
+        dot.className = 'status-dot stopped';
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }
 
   function loadFromStorage() {
     try {
