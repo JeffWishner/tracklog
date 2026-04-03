@@ -352,7 +352,7 @@
   /* BOTTOM TOOLBAR */
   .toolbar {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 1px;
     background: var(--border);
     border-top: 1px solid var(--border);
@@ -619,6 +619,9 @@
 <div class="toolbar">
   <button class="tool-btn" id="btnExport" onclick="exportCSV()" disabled>
     ↑ EXPORT CSV
+  </button>
+  <button class="tool-btn" onclick="window.open('https://jeffwishner.github.io/tracklog/route-viewer.html', '_blank')">
+    ◎ ROUTE VIEWER
   </button>
   <button class="tool-btn danger" id="btnClear" onclick="clearData()">
     ✕ CLEAR ALL
