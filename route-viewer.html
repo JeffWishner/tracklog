@@ -373,7 +373,7 @@
   <div class="style-switcher" id="styleSwitcher">
     <div class="style-btn active" onclick="setMapStyle('satellite')" id="btnSatellite">Satellite</div>
     <div class="style-btn" onclick="setMapStyle('terrain')" id="btnTerrain">Terrain</div>
-    <div class="style-btn" onclick="setMapStyle('dark')" id="btnDark">Dark</div>
+    <div class="style-btn" onclick="toggleNorthLock()" id="btnNorthLock">N ↑ Lock</div>
   </div>
 
   <!-- Playback Controls -->
@@ -814,6 +814,26 @@
       map.fitBounds(bounds, { padding: 60, pitch: 60, duration: 1200 });
     }
     drawElevationProfile();
+  }
+
+  // ── NORTH LOCK ─────────────────────────────────────────────────────
+  let northLocked = false;
+
+  function toggleNorthLock() {
+    northLocked = !northLocked;
+    const btn = document.getElementById('btnNorthLock');
+    if (northLocked) {
+      map.setBearing(0);
+      map.dragRotate.disable();
+      map.touchZoomRotate.disableRotation();
+      btn.classList.add('active');
+      btn.textContent = 'N ↑ Locked';
+    } else {
+      map.dragRotate.enable();
+      map.touchZoomRotate.enableRotation();
+      btn.classList.remove('active');
+      btn.textContent = 'N ↑ Lock';
+    }
   }
 
   // ── MAP STYLE ──────────────────────────────────────────────────────
