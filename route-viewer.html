@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Route Viewer</title>
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Source+Code+Pro:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #1a1a1a;
+    --border: #2a2a2a;
+    --accent: #e8c84a;
+    --red: #e84a4a;
+    --green: #4ae87a;
+    --blue: #4a9ee8;
+    --text: #f0f0f0;
+    --text-dim: #555;
+    --text-mid: #888;
+    --mono: 'Source Code Pro', monospace;
+    --ui: 'Inter', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--ui);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    gap: 16px;
+    z-index: 10;
+  }
+
+  .logo {
+    font-family: var(--ui);
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .session-title {
+    font-size: 13px;
+    color: var(--text-mid);
+    letter-spacing: 1px;
+    flex: 1;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-mid);
+    font-family: var(--ui);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 7px 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); color: #000; border-color: var(--accent); }
+  .btn.primary:hover { background: #d4b43a; }
+  .btn:disabled { opacity: 0.3; cursor: default; }
+  .btn:disabled:hover { border-color: var(--border); color: var(--text-mid); }
+
+  /* MAIN LAYOUT */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* MAP */
+  #map {
+    flex: 1;
+    width: 100%;
+  }
+
+  /* STATS OVERLAY */
+  .stats-overlay {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    background: rgba(10,10,10,0.85);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    display: none;
+    gap: 24px;
+    z-index: 5;
+    backdrop-filter: blur(8px);
+  }
+
+  .stats-overlay.visible { display: flex; }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat-val {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+
+  /* PLAYBACK CONTROLS */
+  .playback {
+    position: absolute;
+    bottom: 180px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    gap: 8px;
+    z-index: 5;
+  }
+
+  .playback.visible { display: flex; }
+
+  .play-btn {
+    background: rgba(10,10,10,0.9);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 18px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    backdrop-filter: blur(8px);
+  }
+
+  .play-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .play-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+  /* ELEVATION PANEL */
+  .elevation-panel {
+    height: 140px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+    display: none;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .elevation-panel.visible { display: block; }
+
+  #elevationCanvas {
+    width: 100%;
+    height: 100%;
+  }
+
+  .elevation-label {
+    position: absolute;
+    top: 8px;
+    left: 14px;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .progress-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--accent);
+    opacity: 0.8;
+    pointer-events: none;
+    display: none;
+  }
+
+  /* DROP ZONE */
+  .drop-zone {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    background: var(--bg);
+    z-index: 20;
+  }
+
+  .drop-zone.hidden { display: none; }
+
+  .drop-icon {
+    font-size: 64px;
+    opacity: 0.2;
+  }
+
+  .drop-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+
+  .drop-sub {
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-align: center;
+  }
+
+  .drop-area {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 32px 48px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .drop-area:hover, .drop-area.dragover {
+    border-color: var(--accent);
+    background: rgba(232,200,74,0.05);
+  }
+
+  .drop-area-text {
+    font-size: 13px;
+    color: var(--text-mid);
+    margin-bottom: 12px;
+  }
+
+  #fileInput { display: none; }
+
+  /* MAP STYLE SWITCHER */
+  .style-switcher {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 5;
+  }
+
+  .style-switcher.visible { display: flex; }
+
+  .style-btn {
+    background: rgba(10,10,10,0.85);
+    border: 1px solid var(--border);
+    color: var(--text-mid);
+    font-family: var(--ui);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s;
+    backdrop-filter: blur(8px);
+    text-align: center;
+  }
+
+  .style-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .style-btn.active { border-color: var(--accent); color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⊕ RouteViewer</div>
+  <div class="session-title" id="sessionTitle">No route loaded</div>
+  <div class="header-actions">
+    <button class="btn" id="btnFlythrough" onclick="startFlythrough()" disabled>▶ Flythrough</button>
+    <button class="btn" id="btnReset" onclick="resetView()" disabled>⊙ Reset View</button>
+    <button class="btn primary" onclick="document.getElementById('fileInput').click()">↑ Load CSV</button>
+    <input type="file" id="fileInput" accept=".csv" onchange="loadCSV(event)">
+  </div>
+</header>
+
+<div class="main">
+  <!-- Drop Zone -->
+  <div class="drop-zone" id="dropZone">
+    <div class="drop-icon">◎</div>
+    <div class="drop-title">Route Viewer</div>
+    <div class="drop-sub">Load a TrackLog CSV to visualize your route in 3D</div>
+    <div class="drop-area" id="dropArea" onclick="document.getElementById('fileInput').click()">
+      <div class="drop-area-text">Drop CSV here or click to browse</div>
+      <button class="btn primary" style="pointer-events:none;">Select File</button>
+    </div>
+  </div>
+
+  <!-- Map -->
+  <div id="map"></div>
+
+  <!-- Stats Overlay -->
+  <div class="stats-overlay" id="statsOverlay">
+    <div class="stat">
+      <div class="stat-val" id="statPoints">—</div>
+      <div class="stat-label">Points</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="statDist">—</div>
+      <div class="stat-label">km</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="statDuration">—</div>
+      <div class="stat-label">Duration</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="statMaxAlt">—</div>
+      <div class="stat-label">Max Alt m</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="statMaxSpd">—</div>
+      <div class="stat-label">Max km/h</div>
+    </div>
+  </div>
+
+  <!-- Map Style Switcher -->
+  <div class="style-switcher" id="styleSwitcher">
+    <div class="style-btn active" onclick="setMapStyle('satellite')" id="btnSatellite">Satellite</div>
+    <div class="style-btn" onclick="setMapStyle('terrain')" id="btnTerrain">Terrain</div>
+    <div class="style-btn" onclick="setMapStyle('dark')" id="btnDark">Dark</div>
+  </div>
+
+  <!-- Playback Controls -->
+  <div class="playback" id="playback">
+    <button class="play-btn" onclick="resetPlayback()" title="Restart">⏮</button>
+    <button class="play-btn" id="btnPlay" onclick="togglePlayback()" title="Play/Pause">▶</button>
+    <button class="play-btn" onclick="stopPlayback()" title="Stop">■</button>
+  </div>
+
+  <!-- Elevation Panel -->
+  <div class="elevation-panel" id="elevationPanel">
+    <div class="elevation-label">Elevation Profile</div>
+    <canvas id="elevationCanvas"></canvas>
+    <div class="progress-line" id="progressLine"></div>
+  </div>
+</div>
+
+<script>
+  let MAPBOX_TOKEN = localStorage.getItem('mapbox_token') || '';
+  if (!MAPBOX_TOKEN) {
+    MAPBOX_TOKEN = prompt('Enter your Mapbox public token (starts with pk.):\n\nGet one free at mapbox.com — it will be saved for future visits.');
+    if (MAPBOX_TOKEN) localStorage.setItem('mapbox_token', MAPBOX_TOKEN.trim());
+  }
+  mapboxgl.accessToken = MAPBOX_TOKEN ? MAPBOX_TOKEN.trim() : '';
+
+  // ── STATE ──────────────────────────────────────────────────────────
+  let map = null;
+  let points = [];
+  let playbackTimer = null;
+  let playbackIndex = 0;
+  let isPlaying = false;
+  let currentStyle = 'satellite';
+
+  const STYLES = {
+    satellite: 'mapbox://styles/mapbox/satellite-streets-v12',
+    terrain: 'mapbox://styles/mapbox/outdoors-v12',
+    dark: 'mapbox://styles/mapbox/dark-v11',
+  };
+
+  // ── MAP INIT ───────────────────────────────────────────────────────
+  function initMap(center, zoom) {
+    if (map) { map.remove(); map = null; }
+
+    map = new mapboxgl.Map({
+      container: 'map',
+      style: STYLES[currentStyle],
+      center: center,
+      zoom: zoom || 12,
+      pitch: 60,
+      bearing: 0,
+      antialias: true,
+    });
+
+    map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
+
+    map.on('load', () => {
+      // Add 3D terrain
+      map.addSource('mapbox-dem', {
+        type: 'raster-dem',
+        url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+        tileSize: 512,
+        maxzoom: 14,
+      });
+
+      map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
+
+      map.setFog({
+        color: 'rgba(10, 10, 10, 0.8)',
+        'high-color': 'rgba(20, 20, 30, 1)',
+        'horizon-blend': 0.4,
+        'space-color': 'rgba(5, 5, 15, 1)',
+        'star-intensity': 0.6,
+      });
+
+      renderRoute();
+    });
+  }
+
+  // ── CSV LOADING ────────────────────────────────────────────────────
+  function loadCSV(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      parseCSV(e.target.result, file.name);
+    };
+    reader.readAsText(file);
+  }
+
+  function parseCSV(text, filename) {
+    const lines = text.trim().split('\n');
+    if (lines.length < 2) { alert('CSV appears empty.'); return; }
+
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const latIdx = headers.findIndex(h => h.includes('lat'));
+    const lngIdx = headers.findIndex(h => h.includes('lon') || h.includes('lng'));
+    const altIdx = headers.findIndex(h => h.includes('alt'));
+    const spdIdx = headers.findIndex(h => h.includes('spd') || h.includes('speed'));
+    const timeIdx = headers.findIndex(h => h.includes('time'));
+
+    if (latIdx === -1 || lngIdx === -1) {
+      alert('CSV must have latitude and longitude columns.');
+      return;
+    }
+
+    points = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(',');
+      if (cols.length < 2) continue;
+      const lat = parseFloat(cols[latIdx]);
+      const lng = parseFloat(cols[lngIdx]);
+      if (isNaN(lat) || isNaN(lng)) continue;
+      points.push({
+        lat,
+        lng,
+        alt: altIdx >= 0 ? parseFloat(cols[altIdx]) || 0 : 0,
+        spd: spdIdx >= 0 ? parseFloat(cols[spdIdx]) || 0 : 0,
+        time: timeIdx >= 0 ? cols[timeIdx]?.trim() : null,
+      });
+    }
+
+    if (points.length === 0) { alert('No valid points found in CSV.'); return; }
+
+    // Session name from filename
+    const name = filename.replace('.csv', '').replace(/_/g, ' ').toUpperCase();
+    document.getElementById('sessionTitle').textContent = name;
+
+    // Hide drop zone
+    document.getElementById('dropZone').classList.add('hidden');
+
+    // Show UI elements
+    document.getElementById('statsOverlay').classList.add('visible');
+    document.getElementById('styleSwitcher').classList.add('visible');
+    document.getElementById('playback').classList.add('visible');
+    document.getElementById('elevationPanel').classList.add('visible');
+    document.getElementById('btnFlythrough').disabled = false;
+    document.getElementById('btnReset').disabled = false;
+
+    // Calculate stats
+    updateStats();
+    drawElevationProfile();
+
+    // Init map centered on route
+    const center = [points[Math.floor(points.length / 2)].lng, points[Math.floor(points.length / 2)].lat];
+    initMap(center, 13);
+  }
+
+  // ── ROUTE RENDERING ────────────────────────────────────────────────
+  function renderRoute() {
+    if (!map || points.length === 0) return;
+
+    const coords = points.map(p => [p.lng, p.lat]);
+
+    // Route line
+    if (map.getSource('route')) {
+      map.removeLayer('route-line');
+      map.removeLayer('route-glow');
+      map.removeSource('route');
+    }
+
+    map.addSource('route', {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: coords },
+      },
+    });
+
+    // Glow layer
+    map.addLayer({
+      id: 'route-glow',
+      type: 'line',
+      source: 'route',
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
+      paint: {
+        'line-color': '#e8c84a',
+        'line-width': 10,
+        'line-opacity': 0.2,
+        'line-blur': 4,
+      },
+    });
+
+    // Main route line
+    map.addLayer({
+      id: 'route-line',
+      type: 'line',
+      source: 'route',
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
+      paint: {
+        'line-color': '#e8c84a',
+        'line-width': 3,
+        'line-opacity': 0.95,
+      },
+    });
+
+    // Start marker
+    addMarker(points[0], '▶', '#4ae87a');
+    // End marker
+    addMarker(points[points.length - 1], '■', '#e84a4a');
+
+    // Fit map to route
+    const bounds = coords.reduce((b, c) => b.extend(c), new mapboxgl.LngLatBounds(coords[0], coords[0]));
+    map.fitBounds(bounds, { padding: 60, pitch: 60, duration: 1500 });
+  }
+
+  function addMarker(point, symbol, color) {
+    const el = document.createElement('div');
+    el.style.cssText = `
+      width: 24px; height: 24px;
+      background: ${color};
+      border: 2px solid #000;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; color: #000; font-weight: bold;
+      box-shadow: 0 0 8px ${color}88;
+    `;
+    el.textContent = symbol;
+    new mapboxgl.Marker({ element: el })
+      .setLngLat([point.lng, point.lat])
+      .addTo(map);
+  }
+
+  // ── STATS ──────────────────────────────────────────────────────────
+  function updateStats() {
+    document.getElementById('statPoints').textContent = points.length;
+
+    // Distance (Haversine)
+    let dist = 0;
+    for (let i = 1; i < points.length; i++) {
+      dist += haversine(points[i-1], points[i]);
+    }
+    document.getElementById('statDist').textContent = dist.toFixed(1);
+
+    // Duration
+    if (points[0].time && points[points.length-1].time) {
+      const t1 = new Date(points[0].time);
+      const t2 = new Date(points[points.length-1].time);
+      const ms = Math.abs(t2 - t1);
+      const h = Math.floor(ms / 3600000);
+      const m = Math.floor((ms % 3600000) / 60000);
+      document.getElementById('statDuration').textContent = `${h}h ${m}m`;
+    } else {
+      document.getElementById('statDuration').textContent = '—';
+    }
+
+    const maxAlt = Math.max(...points.map(p => p.alt || 0));
+    const maxSpd = Math.max(...points.map(p => p.spd || 0));
+    document.getElementById('statMaxAlt').textContent = maxAlt > 0 ? Math.round(maxAlt) : '—';
+    document.getElementById('statMaxSpd').textContent = maxSpd > 0 ? Math.round(maxSpd) : '—';
+  }
+
+  function haversine(a, b) {
+    const R = 6371;
+    const dLat = (b.lat - a.lat) * Math.PI / 180;
+    const dLng = (b.lng - a.lng) * Math.PI / 180;
+    const x = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(a.lat * Math.PI/180) * Math.cos(b.lat * Math.PI/180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+    return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
+  }
+
+  // ── ELEVATION PROFILE ──────────────────────────────────────────────
+  function drawElevationProfile(highlightIndex = -1) {
+    const canvas = document.getElementById('elevationCanvas');
+    const panel = document.getElementById('elevationPanel');
+    canvas.width = panel.offsetWidth;
+    canvas.height = panel.offsetHeight;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width;
+    const H = canvas.height;
+    const PAD = { top: 24, bottom: 20, left: 12, right: 12 };
+
+    const alts = points.map(p => p.alt || 0);
+    const minAlt = Math.min(...alts);
+    const maxAlt = Math.max(...alts);
+    const range = maxAlt - minAlt || 1;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // Gradient fill
+    const grad = ctx.createLinearGradient(0, PAD.top, 0, H - PAD.bottom);
+    grad.addColorStop(0, 'rgba(232,200,74,0.4)');
+    grad.addColorStop(1, 'rgba(232,200,74,0.02)');
+
+    ctx.beginPath();
+    points.forEach((p, i) => {
+      const x = PAD.left + (i / (points.length - 1)) * (W - PAD.left - PAD.right);
+      const y = PAD.top + (1 - (p.alt - minAlt) / range) * (H - PAD.top - PAD.bottom);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.lineTo(W - PAD.right, H - PAD.bottom);
+    ctx.lineTo(PAD.left, H - PAD.bottom);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    points.forEach((p, i) => {
+      const x = PAD.left + (i / (points.length - 1)) * (W - PAD.left - PAD.right);
+      const y = PAD.top + (1 - (p.alt - minAlt) / range) * (H - PAD.top - PAD.bottom);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = '#e8c84a';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Alt labels
+    ctx.fillStyle = '#555';
+    ctx.font = '9px Source Code Pro, monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(`${Math.round(maxAlt)}m`, PAD.left + 36, PAD.top + 4);
+    ctx.fillText(`${Math.round(minAlt)}m`, PAD.left + 36, H - PAD.bottom - 2);
+
+    // Progress indicator
+    if (highlightIndex >= 0) {
+      const x = PAD.left + (highlightIndex / (points.length - 1)) * (W - PAD.left - PAD.right);
+      const line = document.getElementById('progressLine');
+      line.style.display = 'block';
+      line.style.left = x + 'px';
+    }
+  }
+
+  // ── FLYTHROUGH ─────────────────────────────────────────────────────
+  async function startFlythrough() {
+    if (!map || points.length === 0) return;
+    stopPlayback();
+
+    document.getElementById('btnFlythrough').disabled = true;
+
+    const coords = points.map(p => [p.lng, p.lat]);
+    let i = 0;
+
+    const fly = () => {
+      if (i >= coords.length - 1) {
+        document.getElementById('btnFlythrough').disabled = false;
+        return;
+      }
+
+      const current = coords[i];
+      const next = coords[Math.min(i + 5, coords.length - 1)];
+      const bearing = getBearing(current, next);
+
+      map.easeTo({
+        center: current,
+        bearing: bearing,
+        pitch: 70,
+        zoom: 15,
+        duration: 300,
+        easing: t => t,
+      });
+
+      drawElevationProfile(i);
+      i += 3;
+      setTimeout(fly, 250);
+    };
+
+    map.easeTo({ pitch: 70, zoom: 14, duration: 1000 });
+    setTimeout(fly, 1100);
+  }
+
+  function getBearing(from, to) {
+    const lat1 = from[1] * Math.PI / 180;
+    const lat2 = to[1] * Math.PI / 180;
+    const dLng = (to[0] - from[0]) * Math.PI / 180;
+    const y = Math.sin(dLng) * Math.cos(lat2);
+    const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+    return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+  }
+
+  // ── PLAYBACK ───────────────────────────────────────────────────────
+  function togglePlayback() {
+    isPlaying ? pausePlayback() : startPlayback();
+  }
+
+  function startPlayback() {
+    if (points.length === 0) return;
+    isPlaying = true;
+    document.getElementById('btnPlay').classList.add('active');
+    document.getElementById('btnPlay').textContent = '⏸';
+
+    if (!map.getSource('marker-pos')) {
+      map.addSource('marker-pos', {
+        type: 'geojson',
+        data: { type: 'Feature', geometry: { type: 'Point', coordinates: [points[0].lng, points[0].lat] } }
+      });
+      map.addLayer({
+        id: 'playback-marker',
+        type: 'circle',
+        source: 'marker-pos',
+        paint: {
+          'circle-radius': 8,
+          'circle-color': '#e8c84a',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#000',
+          'circle-blur': 0.1,
+        }
+      });
+    }
+
+    const step = () => {
+      if (!isPlaying || playbackIndex >= points.length) {
+        stopPlayback();
+        return;
+      }
+      const pt = points[playbackIndex];
+      map.getSource('marker-pos').setData({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [pt.lng, pt.lat] }
+      });
+      map.easeTo({ center: [pt.lng, pt.lat], duration: 400, easing: t => t });
+      drawElevationProfile(playbackIndex);
+      playbackIndex++;
+      playbackTimer = setTimeout(step, 400);
+    };
+    step();
+  }
+
+  function pausePlayback() {
+    isPlaying = false;
+    clearTimeout(playbackTimer);
+    document.getElementById('btnPlay').classList.remove('active');
+    document.getElementById('btnPlay').textContent = '▶';
+  }
+
+  function stopPlayback() {
+    pausePlayback();
+    playbackIndex = 0;
+    document.getElementById('progressLine').style.display = 'none';
+  }
+
+  function resetPlayback() {
+    stopPlayback();
+    if (points.length > 0) {
+      const coords = points.map(p => [p.lng, p.lat]);
+      const bounds = coords.reduce((b, c) => b.extend(c), new mapboxgl.LngLatBounds(coords[0], coords[0]));
+      map.fitBounds(bounds, { padding: 60, pitch: 60, duration: 1200 });
+    }
+    drawElevationProfile();
+  }
+
+  // ── MAP STYLE ──────────────────────────────────────────────────────
+  function setMapStyle(style) {
+    currentStyle = style;
+    document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn' + style.charAt(0).toUpperCase() + style.slice(1)).classList.add('active');
+
+    if (map) {
+      map.setStyle(STYLES[style]);
+      map.once('styledata', () => {
+        map.addSource('mapbox-dem', {
+          type: 'raster-dem',
+          url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+          tileSize: 512,
+          maxzoom: 14,
+        });
+        map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
+        renderRoute();
+      });
+    }
+  }
+
+  function resetView() {
+    if (!map || points.length === 0) return;
+    stopPlayback();
+    const coords = points.map(p => [p.lng, p.lat]);
+    const bounds = coords.reduce((b, c) => b.extend(c), new mapboxgl.LngLatBounds(coords[0], coords[0]));
+    map.fitBounds(bounds, { padding: 60, pitch: 60, bearing: 0, duration: 1500 });
+    drawElevationProfile();
+  }
+
+  // ── DRAG & DROP ────────────────────────────────────────────────────
+  const dropArea = document.getElementById('dropArea');
+  dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.classList.add('dragover'); });
+  dropArea.addEventListener('dragleave', () => dropArea.classList.remove('dragover'));
+  dropArea.addEventListener('drop', e => {
+    e.preventDefault();
+    dropArea.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file && file.name.endsWith('.csv')) {
+      const reader = new FileReader();
+      reader.onload = ev => parseCSV(ev.target.result, file.name);
+      reader.readAsText(file);
+    }
+  });
+
+  // ── RESIZE ────────────────────────────────────────────────────────
+  window.addEventListener('resize', () => {
+    if (points.length > 0) drawElevationProfile();
+  });
+</script>
+</body>
+</html>
